@@ -131,7 +131,7 @@
         </div>
       </div>
       <div class="row hidden" id="feeRow" style="display:flex;justify-content:space-between">
-        <span class="muted">Odpočet <span id="feePct">23</span> % (platba kartou)</span>
+        <span class="muted">DPH <span id="feePct">23</span> % (platba kartou)</span>
         <span id="fee">0,00 €</span>
       </div>
     </div>
@@ -205,7 +205,7 @@ function setPay(v) {
 }
 function calc() {
   const a = num($("amount").value) || 0, c = num($("cost").value) || 0;
-  const f = state.pay === "karta" ? Math.round(a * state.feePct) / 100 : 0;
+  const f = state.pay === "karta" ? Math.round(a * state.feePct / (100 + state.feePct) * 100) / 100 : 0;
   $("fee").textContent = "− " + eur(f);
   $("rest").textContent = eur(a - c - f);
 }
