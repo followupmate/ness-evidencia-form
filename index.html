@@ -47,6 +47,10 @@
   .sum { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px;
     background: var(--bg); border-radius: var(--radius); margin-bottom: 12px; }
   .sum b { font-size: 20px; }
+  .summary { padding: 6px 14px; }
+  .srow { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; }
+  .total-row { border-top: 1px solid var(--bg2); margin-top: 2px; padding-top: 10px; font-weight: 600; }
+  .total-row b { font-size: 20px; }
   .muted { color: var(--hint); font-size: 14px; }
   .hidden { display: none !important; }
   .datebar { display: flex; align-items: center; justify-content: space-between; padding: 4px 2px 10px; }
@@ -130,13 +134,13 @@
           <button data-v="ucet">Účet</button>
         </div>
       </div>
-      <div class="row hidden" id="feeRow" style="display:flex;justify-content:space-between">
-        <span class="muted">DPH <span id="feePct">23</span> % (platba kartou)</span>
-        <span id="fee">0,00 €</span>
-      </div>
     </div>
 
-    <div class="sum"><span class="muted">Zostáva</span><b id="rest">0,00 €</b></div>
+    <div class="card summary">
+      <div class="srow"><span class="muted">Náklad za produkt</span><span id="sCost">− 0,00 €</span></div>
+      <div class="srow hidden" id="feeRow"><span class="muted">Platba kartou <small>(<span id="feePct">23</span> %)</small></span><span id="fee">− 0,00 €</span></div>
+      <div class="srow total-row"><span>Zostáva</span><b id="rest">0,00 €</b></div>
+    </div>
   </section>
 
   <section id="tab-list" class="hidden">
@@ -207,6 +211,7 @@ function calc() {
   const a = num($("amount").value) || 0, c = num($("cost").value) || 0;
   const f = state.pay === "karta" ? Math.round(a * state.feePct / (100 + state.feePct) * 100) / 100 : 0;
   $("fee").textContent = "− " + eur(f);
+  $("sCost").textContent = "− " + eur(c);
   $("rest").textContent = eur(a - c - f);
 }
 ["amount", "cost"].forEach((id) => $(id).addEventListener("input", calc));
