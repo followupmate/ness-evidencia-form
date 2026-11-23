@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Evidencia ošetrení</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --bg2: var(--tg-theme-secondary-bg-color, #f2f2f7);
+    --text: var(--tg-theme-text-color, #111111);
+    --hint: var(--tg-theme-hint-color, #8e8e93);
+    --accent: var(--tg-theme-button-color, #2b8a5a);
+    --accent-text: var(--tg-theme-button-text-color, #ffffff);
+    --danger: var(--tg-theme-destructive-text-color, #d93a3a);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg2); color: var(--text);
+    font: 16px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { padding-bottom: 96px; }
+  .tabs { position: sticky; top: 0; z-index: 5; display: flex; gap: 6px; padding: 10px 12px;
+    background: var(--bg2); }
+  .tab { flex: 1; padding: 10px; border: 0; border-radius: 10px; font-size: 15px; font-weight: 600;
+    background: transparent; color: var(--hint); }
+  .tab.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .tab .badge { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 10px;
+    background: var(--accent); color: var(--accent-text); font-size: 12px; line-height: 20px; }
+  section { padding: 0 12px; }
+  .card { background: var(--bg); border-radius: var(--radius); padding: 4px 14px; margin-bottom: 12px; }
+  .row { padding: 10px 0; border-bottom: 1px solid var(--bg2); }
+  .row:last-child { border-bottom: 0; }
+  label { display: block; font-size: 13px; color: var(--hint); margin-bottom: 6px; }
+  input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--text);
+    font-size: 17px; padding: 4px 0; font-family: inherit; }
+  input::placeholder { color: var(--hint); opacity: .7; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1.5px solid var(--bg2); background: var(--bg2); color: var(--text); border-radius: 20px;
+    padding: 8px 14px; font-size: 15px; font-family: inherit; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .seg button { padding: 12px 4px; border: 0; border-radius: 10px; background: var(--bg2); color: var(--text);
+    font-size: 15px; font-family: inherit; }
+  .seg button.on { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .sum { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px;
+    background: var(--bg); border-radius: var(--radius); margin-bottom: 12px; }
+  .sum b { font-size: 20px; }
+  .muted { color: var(--hint); font-size: 14px; }
+  .hidden { display: none !important; }
+  .datebar { display: flex; align-items: center; justify-content: space-between; padding: 4px 2px 10px; }
+  .datebar input { width: auto; font-size: 15px; color: var(--accent); text-align: right; }
+  .editbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+    margin-bottom: 12px; border-radius: var(--radius); background: var(--bg); border-left: 4px solid var(--accent); }
+  .linkbtn { border: 0; background: none; color: var(--accent); font-size: 15px; font-family: inherit; padding: 4px; }
+  .linkbtn.danger { color: var(--danger); }
+  .footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--bg2); }
+  .save { width: 100%; padding: 15px; border: 0; border-radius: var(--radius); background: var(--accent);
+    color: var(--accent-text); font-size: 17px; font-weight: 600; font-family: inherit; }
+  .save:disabled { opacity: .5; }
+  .item { padding: 12px 0; border-bottom: 1px solid var(--bg2); display: flex; justify-content: space-between; gap: 10px; }
+  .item:last-child { border-bottom: 0; }
+  .item .name { font-weight: 600; }
+  .item .amt { text-align: right; white-space: nowrap; font-weight: 600; }
+  .total { display: flex; justify-content: space-between; padding: 12px 14px; background: var(--bg);
+    border-radius: var(--radius); margin-bottom: 12px; font-weight: 600; }
+  .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: rgba(0,0,0,.82);
+    color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 15px; z-index: 20; max-width: 90%;
+    text-align: center; transition: opacity .25s; }
+  .toast.err { background: var(--danger); }
+  .center { text-align: center; padding: 40px 20px; color: var(--hint); }
+</style>
+</head>
+<body>
+<div id="app" class="hidden">
+  <div class="tabs">
+    <button class="tab on" data-tab="form">➕ Nový záznam</button>
+    <button class="tab" data-tab="list">📋 Dnes <span class="badge" id="badge">0</span></button>
+  </div>
+
+  <section id="tab-form">
+    <div class="editbar hidden" id="editbar">
+      <span>✏️ Upravuješ záznam <b id="editId"></b></span>
+      <span>
+        <button class="linkbtn danger" id="delBtn">Zmazať</button>
+        <button class="linkbtn" id="cancelEdit">Zrušiť</button>
+      </span>
+    </div>
+
+    <div class="datebar">
+      <span class="muted">Dátum ošetrenia</span>
+      <input type="date" id="date">
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <label for="client">Priezvisko klientky</label>
+        <input id="client" list="clients" autocomplete="off" autocapitalize="words" placeholder="napr. Nováková">
+        <datalist id="clients"></datalist>
+      </div>
+      <div class="row">
+        <label>Ošetrenie</label>
+        <div class="chips" id="chips"></div>
+        <input id="treatOther" class="hidden" placeholder="Napíš ošetrenie" style="margin-top:8px">
+      </div>
+      <div class="row">
+        <label for="units">Jednotky / lokalita <span class="muted">(nepovinné)</span></label>
+        <input id="units" placeholder="napr. čelo 28U, glabela 40U">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row two">
+        <div>
+          <label for="amount">Suma €</label>
+          <input id="amount" inputmode="decimal" placeholder="0">
+        </div>
+        <div>
+          <label for="cost">Náklad produktu €</label>
+          <input id="cost" inputmode="decimal" placeholder="0">
+        </div>
+      </div>
+      <div class="row">
+        <label>Platba</label>
+        <div class="seg" id="pay">
+          <button data-v="hotovost" class="on">Hotovosť</button>
+          <button data-v="karta">Karta</button>
+          <button data-v="ucet">Účet</button>
+        </div>
+      </div>
+      <div class="row hidden" id="feeRow">
+        <label for="fee">Odpočet za doklad €</label>
+        <input id="fee" inputmode="decimal" placeholder="0">
+      </div>
+    </div>
+
+    <div class="sum"><span class="muted">Zostáva</span><b id="rest">0,00 €</b></div>
+  </section>
+
+  <section id="tab-list" class="hidden">
+    <div class="datebar">
+      <span class="muted">Záznamy za deň</span>
+      <input type="date" id="listDate">
+    </div>
+    <div class="total"><span id="cnt">0 ošetrení</span><span id="tot">0,00 €</span></div>
+    <div class="card" id="items"></div>
+    <p class="muted" style="text-align:center">Ťukni na záznam pre úpravu.</p>
+  </section>
+
+  <div class="footer" id="footer"><button class="save" id="saveBtn">Uložiť</button></div>
+</div>
+<div id="msg" class="center">Načítavam…</div>
+
+<script>
+const API = "https://exhjzqjvyjwvnrtfymfl.supabase.co/functions/v1/miniapp-api";
+const tg = window.Telegram?.WebApp;
+const $ = (id) => document.getElementById(id);
+const PAY = { hotovost: "hotovosť", karta: "karta", ucet: "účet" };
+const state = { treatment: null, pay: "hotovost", editId: null, records: [], today: null, treatments: [] };
+
+const num = (v) => { const n = parseFloat(String(v ?? "").replace(",", ".").replace(/\s/g, "")); return isNaN(n) ? null : n; };
+const eur = (n) => Number(n || 0).toLocaleString("sk-SK", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const haptic = (t) => { try { tg?.HapticFeedback?.notificationOccurred(t); } catch (_) {} };
+
+function toast(text, err = false) {
+  const el = document.createElement("div");
+  el.className = "toast" + (err ? " err" : "");
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, err ? 3500 : 2000);
+}
+
+async function api(action, extra = {}) {
+  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ initData: tg?.initData ?? "", action, ...extra }) });
+  const j = await r.json().catch(() => ({ error: "Chyba spojenia." }));
+  if (!r.ok || j.error) throw new Error(j.error || "Chyba.");
+  return j;
+}
+
+// ---------- form ----------
+function renderChips() {
+  const all = [...state.treatments, "Iné"];
+  $("chips").innerHTML = all.map((t) =>
+    `<button class="chip${state.treatment === t ? " on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
+  $("treatOther").classList.toggle("hidden", state.treatment !== "Iné");
+}
+$("chips").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  state.treatment = b.dataset.t; renderChips();
+  if (state.treatment === "Iné") $("treatOther").focus();
+});
+$("pay").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  setPay(b.dataset.v);
+});
+function setPay(v) {
+  state.pay = v;
+  [...$("pay").children].forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+  $("feeRow").classList.toggle("hidden", v !== "karta");
+  calc();
+}
+function calc() {
+  const a = num($("amount").value) || 0, c = num($("cost").value) || 0;
+  const f = state.pay === "karta" ? (num($("fee").value) || 0) : 0;
+  $("rest").textContent = eur(a - c - f);
+}
+["amount", "cost", "fee"].forEach((id) => $(id).addEventListener("input", calc));
+
+function treatmentValue() {
+  return state.treatment === "Iné" ? $("treatOther").value.trim() : state.treatment;
+}
+
+function resetForm(keepDate = true) {
+  state.editId = null; state.treatment = null;
+  ["client", "units", "amount", "cost", "fee", "treatOther"].forEach((id) => ($(id).value = ""));
+  if (!keepDate) $("date").value = state.today;
+  setPay("hotovost"); renderChips();
+  $("editbar").classList.add("hidden");
+  $("saveBtn").textContent = "Uložiť";
+}
+
+function fillForm(r) {
+  state.editId = r.id;
+  $("client").value = r.klientka || "";
+  if (state.treatments.includes(r.osetrenie)) { state.treatment = r.osetrenie; $("treatOther").value = ""; }
+  else { state.treatment = "Iné"; $("treatOther").value = r.osetrenie || ""; }
+  $("units").value = r.jednotky || "";
+  $("amount").value = r.suma ?? "";
+  $("cost").value = Number(r.naklad) ? r.naklad : "";
+  $("fee").value = Number(r.doklad) ? r.doklad : "";
+  $("date").value = r.datum;
+  setPay(r.platba); renderChips();
+  $("editId").textContent = "#" + r.id;
+  $("editbar").classList.remove("hidden");
+  $("saveBtn").textContent = "Uložiť zmeny";
+  showTab("form");
+  window.scrollTo(0, 0);
+}
+$("cancelEdit").addEventListener("click", () => resetForm());
+$("delBtn").addEventListener("click", async () => {
+  if (!state.editId) return;
+  const go = () => doDelete(state.editId);
+  if (tg?.showConfirm) tg.showConfirm("Naozaj zmazať tento záznam?", (ok) => ok && go());
+  else if (confirm("Naozaj zmazať tento záznam?")) go();
+});
+async function doDelete(id) {
+  try {
+    const j = await api("delete", { id });
+    haptic("success"); toast("Záznam zmazaný");
+    resetForm(); setRecords(j.records, $("listDate").value);
+  } catch (e) { haptic("error"); toast(e.message, true); }
+}
+
+$("saveBtn").addEventListener("click", async () => {
+  if ($("saveBtn").dataset.mode === "list") { resetForm(); showTab("form"); return; }
+  const record = {
+    client_name: $("client").value.trim(),
+    treatment_name: treatmentValue(),
+    units: $("units").value.trim(),
+    amount: num($("amount").value),
+    product_cost: num($("cost").value),
+    doc_fee: num($("fee").value),
+    payment_method: state.pay,
+    record_date: $("date").value || state.today,
+  };
+  const miss = [];
+  if (!record.client_name) miss.push("priezvisko");
+  if (!record.treatment_name) miss.push("ošetrenie");
+  if (record.amount == null) miss.push("sumu");
+  if (miss.length) { haptic("error"); toast("Doplň " + miss.join(", "), true); return; }
+
+  const btn = $("saveBtn"); btn.disabled = true; btn.textContent = "Ukladám…";
+  try {
+    const j = await api("save", { record, id: state.editId });
+    haptic("success");
+    toast(state.editId ? "Zmeny uložené ✓" : "Uložené ✓");
+    if (record.client_name && !state.clients.includes(record.client_name)) {
+      state.clients.unshift(record.client_name); renderClients();
+    }
+    const d = record.record_date;
+    resetForm();
+    $("date").value = d;
+    $("listDate").value = d;
+    setRecords(j.records, d);
+    $("client").focus();
+  } catch (e) {
+    haptic("error"); toast(e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = state.editId ? "Uložiť zmeny" : "Uložiť";
+  }
+});
+
+// ---------- list ----------
+function setRecords(recs, date) {
+  state.records = recs || [];
+  if (date === state.today) $("badge").textContent = state.records.length;
+  const total = state.records.reduce((s, r) => s + Number(r.suma || 0), 0);
+  const n = state.records.length;
+  $("cnt").textContent = `${n} ${n === 1 ? "ošetrenie" : n >= 2 && n <= 4 ? "ošetrenia" : "ošetrení"}`;
+  $("tot").textContent = eur(total);
+  const showWho = state.staff?.role === "manager";
+  $("items").innerHTML = n ? state.records.map((r) => `
+    <div class="item" data-id="${r.id}">
+      <div>
+        <div class="name">${esc(r.klientka)}</div>
+        <div class="muted">${esc(r.osetrenie)}${r.jednotky ? " · " + esc(r.jednotky) : ""}${showWho ? " · " + esc(r.zapisala) : ""}</div>
+      </div>
+      <div class="amt">${eur(r.suma)}<div class="muted">${PAY[r.platba] || ""}</div></div>
+    </div>`).join("") : `<div class="center">Žiadne záznamy</div>`;
+}
+$("items").addEventListener("click", (e) => {
+  const it = e.target.closest(".item"); if (!it) return;
+  const r = state.records.find((x) => String(x.id) === it.dataset.id);
+  if (r) fillForm(r);
+});
+$("listDate").addEventListener("change", async () => {
+  try { const j = await api("list", { date: $("listDate").value }); setRecords(j.records, $("listDate").value); }
+  catch (e) { toast(e.message, true); }
+});
+
+// ---------- tabs ----------
+function showTab(t) {
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+  $("tab-form").classList.toggle("hidden", t !== "form");
+  $("tab-list").classList.toggle("hidden", t !== "list");
+  const btn = $("saveBtn");
+  if (t === "list") { btn.textContent = "➕ Nový záznam"; btn.dataset.mode = "list"; }
+  else { btn.textContent = state.editId ? "Uložiť zmeny" : "Uložiť"; btn.dataset.mode = "form"; }
+}
+document.querySelector(".tabs").addEventListener("click", (e) => {
+  const b = e.target.closest(".tab"); if (b) showTab(b.dataset.tab);
+});
+
+function renderClients() {
+  $("clients").innerHTML = state.clients.map((c) => `<option value="${esc(c)}">`).join("");
+}
+
+// ---------- init ----------
+(async function init() {
+  if (!tg || !tg.initData) {
+    $("msg").textContent = "Tento formulár otvor cez Telegram bota (tlačidlo „Záznam“).";
+    return;
+  }
+  tg.ready(); tg.expand();
+  try { tg.setHeaderColor?.("secondary_bg_color"); tg.setBackgroundColor?.("secondary_bg_color"); } catch (_) {}
+  try {
+    const j = await api("init");
+    state.today = j.today; state.treatments = j.treatments || []; state.clients = j.clients || []; state.staff = j.staff;
+    $("date").value = j.today; $("date").max = j.today;
+    $("listDate").value = j.today; $("listDate").max = j.today;
+    renderChips(); renderClients(); setRecords(j.records, j.today);
+    $("msg").classList.add("hidden"); $("app").classList.remove("hidden");
+  } catch (e) {
+    $("msg").textContent = e.message;
+  }
+})();
+</script>
+</body>
+</html>
